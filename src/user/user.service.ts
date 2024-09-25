@@ -1,14 +1,18 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './user.entity';
 import * as bcrypt from 'bcryptjs';
+import { AuthService } from 'src/auth/auth.service';
 
 @Injectable()
 export class UserService {
   constructor(
-    @InjectRepository(User)
+    @InjectRepository(User) // Inject UserRepository
     private userRepository: Repository<User>,
+
+    @Inject(forwardRef(() => AuthService))
+    private authService: AuthService,
   ) {}
 
   async validateUser(username: string, password: string): Promise<User | null> {
@@ -19,7 +23,7 @@ export class UserService {
     return null; // Return null if validation fails
   }
 
-  async findUser(username: string): Promise<User> {
+  async findUser(username: string): Promise<User | undefined> {
     return this.userRepository.findOne({ where: { username } });
   }
 

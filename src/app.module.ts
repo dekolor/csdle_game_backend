@@ -7,7 +7,6 @@ import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { RedisService } from './redis/redis.service';
 import 'dotenv/config';
 
-
 @Module({
   imports: [
     TypeOrmModule.forRoot({
@@ -19,6 +18,7 @@ import 'dotenv/config';
       database: '',
       autoLoadEntities: true, // Automatically load entities (models)
       synchronize: true, // Synchronize schema on every app launch (turn off in production)
+      entities: [__dirname + '/**/*.entity{.ts,.js}'], // Ensure both entities are included
     }),
     UserModule,
     AuthModule,

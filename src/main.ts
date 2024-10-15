@@ -16,7 +16,7 @@ async function bootstrap() {
       store: new RedisStore({
         client: redisClient,
       }),
-      secret: '',
+      secret: 'amongus',
       resave: false,
       saveUninitialized: false,
       cookie: { maxAge: 3600000, secure: false, httpOnly: true }, // 1-hour expiry

@@ -1,0 +1,40 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main # Deploy when pushing to the main branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+
+      - name: Clone Repo on VPS and Build Docker Image
+        run: |
+          ssh -o StrictHostKeyChecking=no stefan@${{ secrets.VPS_HOST }} << 'EOF'
+            cd /home/stefan
+
+            # If the repo already exists, pull the latest changes
+            if [ -d "cs2-game-backend" ]; then
+              cd cs2-game-backend
+              git pull origin main
+            else
+              # Clone the repo for the first time
+              git clone https://github.com/stefan/csdle_game_backend.git cs2-game-backend
+              cd cs2-game-backend
+            fi
+
+            # Build the Docker image locally
+            docker-compose down         # Stop current containers
+            docker-compose build        # Build the image from Dockerfile
+            docker-compose up -d        # Start the containers
+          EOF

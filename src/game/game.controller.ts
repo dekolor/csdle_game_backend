@@ -12,7 +12,7 @@ export class GameController {
 
   @Post('guess')
   async checkGuess(
-    @Headers('challenge-id') challengeId: string,
+    @Headers('Challenge-Id') challengeId: string,
     @Body() body: { guess: string },
   ) {
     const correctWeapon = await this.redisService.get(

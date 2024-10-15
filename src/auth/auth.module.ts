@@ -10,7 +10,7 @@ import { JwtStrategy } from './jwt.strategy';
     forwardRef(() => UserModule), // Use forwardRef here if there's a circular dependency
     PassportModule,
     JwtModule.register({
-      secret: '', // Replace with a stronger secret
+      secret: 'amongus', // Replace with a stronger secret
       signOptions: { expiresIn: '60m' },
     }),
   ],

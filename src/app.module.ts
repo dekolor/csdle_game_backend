@@ -13,9 +13,9 @@ import 'dotenv/config';
       type: 'mysql', // or 'mysql' for MySQL
       host: 'localhost', // Replace with your DB host
       port: 3306, // Replace with MySQL port if necessary
-      username: '',
-      password: '',
-      database: '',
+      username: 'csdle',
+      password: 'kodeme0A',
+      database: 'csdle',
       autoLoadEntities: true, // Automatically load entities (models)
       synchronize: true, // Synchronize schema on every app launch (turn off in production)
       entities: [__dirname + '/**/*.entity{.ts,.js}'], // Ensure both entities are included

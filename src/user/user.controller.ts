@@ -1,6 +1,13 @@
-import { Controller, Post, Body, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
 import { UserService } from './user.service';
 import { AuthService } from '../auth/auth.service'; // Import AuthService
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('user')
 export class UserController {
@@ -14,6 +21,7 @@ export class UserController {
     return this.userService.register(body.username, body.password);
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Post('finduser')
   async finduser(@Body() body: { username: string }) {
     return this.userService.findUser(body.username);

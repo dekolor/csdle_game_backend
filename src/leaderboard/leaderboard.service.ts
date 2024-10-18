@@ -1,15 +1,30 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { GameScore } from '../game/game-score.entity'; // Adjust the path as necessary
+import { User } from '../user/user.entity'; // Import User entity if needed
 
 @Injectable()
 export class LeaderboardService {
-  private scores = []; // Mock database for storing scores
+  constructor(
+    @InjectRepository(GameScore)
+    private gameScoresRepository: Repository<GameScore>,
+  ) {}
 
-  addScore(player: string, score: number) {
-    this.scores.push({ player, score });
-    this.scores.sort((a, b) => b.score - a.score);
+  async addScore(playerName: string | undefined, score: number) {
+    const newGameScore = this.gameScoresRepository.create({ playerName, score });
+    await this.gameScoresRepository.save(newGameScore);
   }
 
-  getTopScores() {
-    return this.scores.slice(0, 10); // Return top 10 players
+  async getTopScores() {
+    return this.gameScoresRepository.find({
+      order: { score: 'DESC' },
+      take: 10,
+    });
+  }
+
+  async deleteScore(id: number) {
+    const result = await this.gameScoresRepository.delete(id);
+    return result.affected > 0; // Returns true if a row was deleted
   }
 }

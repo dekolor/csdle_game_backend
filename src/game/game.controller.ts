@@ -23,7 +23,7 @@ export class GameController {
       return { error: 'No challenge found. Please request a new challenge.' };
     }
 
-    const isCorrect = this.gameService.checkGuess(body.guess, correctWeapon);
+    const isCorrect = await this.gameService.checkGuess(challengeId, body.guess);
     return { correct: isCorrect };
   }
 
@@ -35,5 +35,11 @@ export class GameController {
     await this.redisService.set(`challenge:${challengeId}`, weapon, 3600);
 
     return { challenge: 'Guess the weapon', challengeId };
+  }
+
+  @Get('total-guesses')
+  async getTotalGuesses() {
+    const totalGuesses = await this.gameService.getTotalGuesses();
+    return { totalGuesses };
   }
 }

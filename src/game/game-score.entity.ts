@@ -1,5 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
-import { User } from '../user/user.entity'; // Adjust the path as necessary
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity()
 export class GameScore {
@@ -9,6 +8,6 @@ export class GameScore {
   @Column()
   score: number;
 
-  @ManyToOne(() => User, user => user.gameScores) // This should now work
-  user: User;
+  @Column({ nullable: true }) // Allow null if the player chooses not to provide a name
+  playerName: string;
 }

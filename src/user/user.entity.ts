@@ -25,12 +25,6 @@ export class User {
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 
-  @OneToMany(() => GameScore, (gameScore) => gameScore.user)
-  scores: GameScore[];
-
-  @OneToMany(() => GameScore, (gameScore) => gameScore.user) // Add this line
-  gameScores: GameScore[]; // This establishes the one-to-many relationship
-
   @BeforeInsert()
   async hashPassword() {
     this.password = await bcrypt.hash(this.password, 10);

@@ -1,83 +1,128 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Guess } from './guess.entity';
-import { RedisService } from '../redis/redis.service'; // Import RedisService
+import { RedisService } from '../redis/redis.service';
+import { ChallengeType } from './challenge.types';
+import { format } from 'date-fns';
+import * as cron from 'node-cron';
 
 @Injectable()
-export class GameService {
-  private weapons = [
-    "CZ75-Auto",
-    "Desert Eagle",
-    "Dual Berettas",
-    "Five-SeveN",
-    "Glock-18",
-    "P2000",
-    "P250",
-    "R8 Revolver",
-    "Tec-9",
-    "USP-S",
-    "AK-47",
-    "AUG",
-    "AWP",
-    "FAMAS",
-    "G3SG1",
-    "Galil AR",
-    "M4A1-S",
-    "M4A4",
-    "SCAR-20",
-    "SG 553",
-    "SSG 08",
-    "MAC-10",
-    "MP5-SD",
-    "MP7",
-    "MP9",
-    "PP-Bizon",
-    "P90",
-    "UMP-45",
-    "MAG-7",
-    "Nova",
-    "Sawed-Off",
-    "XM1014",
-    "M249",
-    "Negev",
-    "Knife"
-  ]; // Mock data
+export class GameService implements OnModuleInit {
+  private weapons = ['AK-47', 'M4A1-S', 'AWP', 'Desert Eagle'];
+  private skins = ['Dragon Lore', 'Asiimov', 'Hyper Beast']; // Example skins
+  private proPlayers = ['s1mple', 'ZywOo', 'device']; // Example pro players
 
   constructor(
     @InjectRepository(Guess)
     private guessRepository: Repository<Guess>,
-    private redisService: RedisService, // Inject RedisService
+    private redisService: RedisService,
   ) {}
+
+  onModuleInit() {
+    // Schedule the task to run at midnight every day
+    cron.schedule('0 0 * * *', () => {
+      this.generateDailyChallenge();
+    });
+  }
+
+  async checkGuess(challengeId: string, guess: string): Promise<boolean> {
+    console.log(`Retrieving challenge for ID: ${challengeId}`);
+    console.log(`Retrieving key from Redis: daily-challenge:${challengeId}`);
+  
+    const challengeData = await this.redisService.get(`${challengeId}`);
+    
+    if (!challengeData) {
+      console.warn(`No challenge found for ID: ${challengeId}`);
+      return false;
+    }
+  
+    const parsedChallenge = JSON.parse(challengeData);
+    const correctItem = parsedChallenge.item;  // This could be a weapon, skin, or pro player
+  
+    // Log the type and item of the challenge for debugging
+    console.log(`Challenge type: ${parsedChallenge.type}, correct item: ${correctItem}`);
+  
+    // Compare the guess with the correct item (case insensitive)
+    return correctItem.toLowerCase() === guess.toLowerCase();
+  }
+
+  async getTotalGuesses(): Promise<number> {
+    return this.guessRepository.count();
+  }
+
+  async generateDailyChallenge() {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const challengeKey = `daily-challenge:${today}`;
+  
+    // Check if today's challenge already exists
+    const existingChallenge = await this.redisService.get(challengeKey);
+    if (existingChallenge) {
+      console.log(`Challenge for today (${challengeKey}) already exists:`, existingChallenge);
+      return JSON.parse(existingChallenge);
+    }
+  
+    // Randomly select a challenge type
+    const challengeType = this.getRandomChallengeType();
+    let challengeItem;
+  
+    switch (challengeType) {
+      case ChallengeType.GUESS_WEAPON:
+        challengeItem = this.getRandomWeapon();
+        break;
+      case ChallengeType.GUESS_SKIN:
+        challengeItem = this.getRandomSkin();
+        break;
+      case ChallengeType.GUESS_PRO_PLAYER:
+        challengeItem = this.getRandomProPlayer();
+        break;
+      default:
+        throw new Error('Invalid challenge type');
+    }
+  
+    const challenge = { type: challengeType, item: challengeItem };
+    
+    // Log the challenge before setting it in Redis
+    console.log(`Storing challenge (${challengeKey}):`, challenge);
+
+    console.log(`Setting key in Redis: daily-challenge:${today}`);
+  
+    await this.redisService.set(challengeKey, JSON.stringify(challenge), 86400); // Store for 24 hours
+  
+    return challenge;
+  }
+
+  getRandomChallengeType(): ChallengeType {
+    const types = Object.values(ChallengeType);
+    const randomIndex = Math.floor(Math.random() * types.length);
+    return types[randomIndex];
+  }
 
   getRandomWeapon() {
     const randomIndex = Math.floor(Math.random() * this.weapons.length);
     return this.weapons[randomIndex];
   }
 
-  async checkGuess(challengeId: string, guess: string): Promise<boolean> {
-    const existingGuess = await this.guessRepository.findOne({ where: { challengeId, guess } });
-
-    if (existingGuess) {
-      existingGuess.attempts += 1;
-      await this.guessRepository.save(existingGuess);
-    } else {
-      const newGuess = this.guessRepository.create({ challengeId, guess, attempts: 1 });
-      await this.guessRepository.save(newGuess);
-    }
-
-    const correctWeapon = await this.redisService.get(`challenge:${challengeId}`);
-    
-    // Check if correctWeapon is null or undefined
-    if (!correctWeapon) {
-      console.warn(`No correct weapon found for challenge ID: ${challengeId}`);
-      return false; // or handle this case as needed
-    }
-
-    return correctWeapon.toLowerCase() === guess.toLowerCase();
+  getRandomSkin() {
+    const randomIndex = Math.floor(Math.random() * this.skins.length);
+    return this.skins[randomIndex];
   }
 
-  async getTotalGuesses(): Promise<number> {
-    return this.guessRepository.count();
+  getRandomProPlayer() {
+    const randomIndex = Math.floor(Math.random() * this.proPlayers.length);
+    return this.proPlayers[randomIndex];
+  }
+
+  async getDailyChallenge() {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const challengeKey = `daily-challenge:${today}`;
+    const challenge = await this.redisService.get(challengeKey);
+
+    if (!challenge) {
+      throw new Error('No challenge found for today');
+    }
+
+    const parsedChallenge = JSON.parse(challenge);
+    return { type: parsedChallenge.type }; // Return only the challenge type
   }
 }
